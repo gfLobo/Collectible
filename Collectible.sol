@@ -113,6 +113,7 @@ contract Collectible is
         public
         payable
         onlyIfNotPaused
+        nonReentrant
         onlyRole(CREATOR_ROLE)
     {
         require(msg.value >= mintFee(), "Not enough ETH!");
