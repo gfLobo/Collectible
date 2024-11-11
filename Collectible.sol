@@ -54,13 +54,11 @@ contract Collectible is
     struct Raffle{
         uint256 expectedAmount;
         uint256 raffleAmount;
+        address[] participants;
     }
 
     /// @notice Map raffles per tokenId
     mapping(uint256 => Raffle) public raffles;
-
-    /// @notice Map creators and their contributors
-    mapping(address => address[]) public creatorToContributors;
 
     /// @notice Ensures the contract is not paused when executing the function.
     modifier onlyIfNotPaused() {
@@ -132,7 +130,6 @@ contract Collectible is
     {
         payable(creator).transfer(msg.value);
         _grantRole(CONTRIBUTOR_ROLE, msg.sender);
-        creatorToContributors[creator].push(msg.sender);
     }
 
 
@@ -145,13 +142,16 @@ contract Collectible is
     onlyTokenOwner(tokenId)
     onlyRole(CREATOR_ROLE)
     {
-        require(creatorToContributors[msg.sender].length > 1, "Number of contributors must be greater than 1");
         require(expectedAmount > 0, "Expected amount must be greater than zero");
         require(raffles[tokenId].expectedAmount == 0, "Raffle already exists");
 
-        raffles[tokenId] = Raffle(expectedAmount, 0);
+        raffles[tokenId] = Raffle(expectedAmount, 0, new address[](0));
         approve(address(this), tokenId);
-        emit RaffleCreated(tokenId);
+        emit RaffleUpdated(tokenId, 
+            "Raffle created!",
+            raffles[tokenId].expectedAmount, 
+            raffles[tokenId].raffleAmount, 
+            raffles[tokenId].participants.length);
     }
 
     // @notice Allows users to join token raffles for their contributors
@@ -166,11 +166,30 @@ contract Collectible is
         require(msg.value > 0, "Must send ETH to join raffle");
         require(creator != msg.sender, "You cannot join your own raffle");
 
-        raffles[tokenId].raffleAmount += msg.value;
-        donate(creator);
+        
+        for (uint256 i = 0; i < raffles[tokenId].participants.length; i++) {
+            require(raffles[tokenId].participants[i] != msg.sender, "Address already in raffle");
+        }
 
-        if (raffles[tokenId].raffleAmount >= raffles[tokenId].expectedAmount) {
-            address[] memory contributors = creatorToContributors[creator];
+        donate(creator);
+        raffles[tokenId].participants.push(msg.sender);
+        raffles[tokenId].raffleAmount += msg.value;
+
+        string memory status = 
+            (raffles[tokenId].raffleAmount >= raffles[tokenId].expectedAmount && 
+            raffles[tokenId].participants.length < 2) 
+            ? "Raffle updated, but does not have enough contributors for the raffle." 
+            : "Raffle updated!";
+
+
+        emit RaffleUpdated(tokenId, 
+            status,
+            raffles[tokenId].expectedAmount, 
+            raffles[tokenId].raffleAmount, 
+            raffles[tokenId].participants.length);
+
+        if (raffles[tokenId].raffleAmount >= raffles[tokenId].expectedAmount && raffles[tokenId].participants.length >= 2) {
+            address[] memory contributors = raffles[tokenId].participants;
             uint256 randomIndex = uint256(
                 keccak256(abi.encodePacked(block.timestamp, block.prevrandao, creator))
             ) % contributors.length;
@@ -178,6 +197,7 @@ contract Collectible is
             this.safeTransferFrom(creator, contributors[randomIndex], tokenId);
             delete raffles[tokenId];
         }
+
             
     }
 
