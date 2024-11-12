@@ -11,7 +11,13 @@ interface ICollectible {
     // Events
     event MintTaxesUpdated(uint256 mintBaseFee, uint256 mintRateIncrementPercentage);
     event CreatorTermsUpdated(uint256 creatorSignatureFee);
-    event RaffleCreated(uint256 tokenId);
+    event RaffleUpdated(
+        uint256 indexed tokenId, 
+        string status,
+        uint256 expectedAmount, 
+        uint256 raffleAmount,
+        uint256 numParticipants);
+
 
     // Function to get minter creator signature
     function getCreatorSignature() external payable;
