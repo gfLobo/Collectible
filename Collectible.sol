@@ -178,7 +178,7 @@ contract Collectible is
         string memory status = 
             (raffles[tokenId].raffleAmount >= raffles[tokenId].expectedAmount && 
             raffles[tokenId].participants.length < 2) 
-            ? "Raffle updated, but does not have enough contributors for the raffle." 
+            ? "Raffle on hold, waiting for more contributors to draw." 
             : "Raffle updated!";
 
 
