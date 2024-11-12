@@ -131,9 +131,9 @@ describe("Collectible Contract", function () {
       await collectible.grantRole(await collectible.CREATOR_ROLE(), creator.address);
       await collectible.grantRole(await collectible.DEFAULT_ADMIN_ROLE(), owner.address);
       await collectible.connect(creator).safeMint(creator.address, "https://example.com/token1", { value: ethers.utils.parseEther("1.0") })
-      await expect(() =>
-          collectible.connect(owner).withdraw(ethers.utils.parseEther("1.0"))
-      ).to.changeEtherBalances([collectible], [ethers.utils.parseEther("0.0")]);
+      await collectible.connect(owner).withdraw(ethers.utils.parseEther("1.0"));
+      const contractBalance = await ethers.provider.getBalance(collectible.address);
+      expect(contractBalance).to.equal(ethers.utils.parseEther("0.0"));
     });
 
     it("Should update mint base fee", async function () {
