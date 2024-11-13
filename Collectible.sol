@@ -3,7 +3,6 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
@@ -16,7 +15,6 @@ import "ICollectible.sol";
 /// @notice This contract implements a collectible system based on ERC721 with guild-based creators.
 /// @dev It inherits functionalities from OpenZeppelin such as:
 /// - ERC721 (Standard token),
-/// - ERC721Enumerable (Token enumeration),
 /// - ERC721URIStorage (URI storage),
 /// - ERC721Pausable (Pausing capabilities),
 /// - AccessControl (Role-based access control),
@@ -25,7 +23,6 @@ import "ICollectible.sol";
 contract Collectible is
     ICollectible,
     ERC721,
-    ERC721Enumerable,
     ERC721URIStorage,
     ERC721Pausable,
     AccessControl,
@@ -51,7 +48,7 @@ contract Collectible is
     bytes32 public constant CONTRIBUTOR_ROLE = keccak256("CONTRIBUTOR_ROLE");
     
 
-    struct Raffle{
+    struct Raffle {
         uint256 expectedAmount;
         uint256 raffleAmount;
         address[] participants;
@@ -73,14 +70,6 @@ contract Collectible is
         _;
     }
 
-    /// @notice Ensures the donation is valid
-    /// @param creator The creator address
-    modifier validDonation(address creator) {
-        require(hasRole(CREATOR_ROLE, creator), "Address is not a valid creator!");
-        require(creator != msg.sender, "You can't donate to yourself!");
-        require(msg.value > 0, "Value must be greater than zero");
-        _;
-    }
 
     /// @notice Contract constructor. Initializes the contract with the specified configuration parameters.
     /// @param _tokenName The name of the token.
@@ -126,8 +115,11 @@ contract Collectible is
     public
     payable 
     override 
-    validDonation(creator)
     {
+        require(hasRole(CREATOR_ROLE, creator), "Address is not a valid creator!");
+        require(creator != msg.sender, "You can't donate to yourself!");
+        require(msg.value > 0, "Value must be greater than zero");
+
         payable(creator).transfer(msg.value);
         _grantRole(CONTRIBUTOR_ROLE, msg.sender);
     }
@@ -147,11 +139,7 @@ contract Collectible is
 
         raffles[tokenId] = Raffle(expectedAmount, 0, new address[](0));
         approve(address(this), tokenId);
-        emit RaffleUpdated(tokenId, 
-            "Raffle created!",
-            raffles[tokenId].expectedAmount, 
-            raffles[tokenId].raffleAmount, 
-            raffles[tokenId].participants.length);
+        emit RaffleUpdated(tokenId, "Raffle created!", expectedAmount, 0, 0);
     }
 
     // @notice Allows users to join token raffles for their contributors
@@ -165,8 +153,6 @@ contract Collectible is
         require(raffles[tokenId].expectedAmount > 0, "No active raffle for this token");
         require(msg.value > 0, "Must send ETH to join raffle");
         require(creator != msg.sender, "You cannot join your own raffle");
-
-        
         for (uint256 i = 0; i < raffles[tokenId].participants.length; i++) {
             require(raffles[tokenId].participants[i] != msg.sender, "Address already in raffle");
         }
@@ -181,7 +167,6 @@ contract Collectible is
             ? "Raffle on hold, waiting for more contributors to draw." 
             : "Raffle updated!";
 
-
         emit RaffleUpdated(tokenId, 
             status,
             raffles[tokenId].expectedAmount, 
@@ -190,6 +175,7 @@ contract Collectible is
 
         if (raffles[tokenId].raffleAmount >= raffles[tokenId].expectedAmount && raffles[tokenId].participants.length >= 2) {
             address[] memory contributors = raffles[tokenId].participants;
+            
             uint256 randomIndex = uint256(
                 keccak256(abi.encodePacked(block.timestamp, block.prevrandao, creator))
             ) % contributors.length;
@@ -197,9 +183,8 @@ contract Collectible is
             this.safeTransferFrom(creator, contributors[randomIndex], tokenId);
             delete raffles[tokenId];
         }
-
-            
     }
+
 
     /// @notice Allows a user to acquire the creator signature by paying the creator fee.
     /// @dev The creator fee is set by the admin.
@@ -209,7 +194,8 @@ contract Collectible is
         override
         onlyIfNotPaused
     {
-        require(msg.value >= creatorSignatureFee, "Not enough ETH!");
+        uint256 signatureFee = creatorSignatureFee;
+        require(msg.value >= signatureFee, "Not enough ETH!");
         _grantRole(CREATOR_ROLE, msg.sender);
     }
 
@@ -217,9 +203,12 @@ contract Collectible is
     /// @return The minting fee in ETH.
     function mintFee() public view returns (uint256) {
         if (hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) return 0;
+        uint256 baseFee = mintBaseFee;
+        uint256 incrementPercentage = mintRateIncrementPercentage;
         uint256 userTokenCount = balanceOf(msg.sender);
-        return mintBaseFee * (1 + mintRateIncrementPercentage / 100) ** userTokenCount;
+        return baseFee * (1 + incrementPercentage / 100) ** userTokenCount;
     }
+
 
     /// @notice Updates the base minting fee.
     /// @param _mintBaseFee The new base minting fee.
@@ -297,16 +286,16 @@ contract Collectible is
     /// @dev Overrides the `_update` method to ensure compatibility between inherited contracts.
     function _update(address to, uint256 tokenId, address auth)
         internal
-        override(ERC721, ERC721Enumerable, ERC721Pausable)
+        override(ERC721, ERC721Pausable)
         returns (address)
     {
         return super._update(to, tokenId, auth);
     }
 
-    /// @dev Overrides `_increaseBalance` for compatibility with ERC721 and ERC721Enumerable.
+    /// @dev Overrides `_increaseBalance` for compatibility with ERC721.
     function _increaseBalance(address account, uint128 value)
         internal
-        override(ERC721, ERC721Enumerable)
+        override(ERC721)
     {
         super._increaseBalance(account, value);
     }
@@ -330,7 +319,7 @@ contract Collectible is
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721, ERC721Enumerable, ERC721URIStorage, AccessControl)
+        override(ERC721, ERC721URIStorage, AccessControl)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
