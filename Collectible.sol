@@ -27,7 +27,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "ICollectible.sol";
 
-/// @title Collectible Contract
+/// @title Collectible
 /// @author gfLobo
 /// @notice This contract implements a collectible system based on ERC721 with guild-based creators.
 /// @dev It inherits functionalities from OpenZeppelin such as:
@@ -90,16 +90,18 @@ contract Collectible is
 
     /// @notice Contract constructor. Initializes the contract with the specified configuration parameters.
     /// @param _tokenName The name of the token.
+    /// @param _tokenSymbol The symbol of the token.
     /// @param _mintBaseFee The initial base fee for minting tokens.
     /// @param _mintRateIncrementPercentage The rate at which minting fees increase.
     /// @param _creatorSignatureFee The fee required to become a member.
     constructor(
         string memory _tokenName,
+        string memory _tokenSymbol,
         uint256 _mintBaseFee,
         uint256 _mintRateIncrementPercentage,
         uint256 _creatorSignatureFee
     )
-        ERC721(_tokenName, "CERC721")
+        ERC721(_tokenName, _tokenSymbol)
     {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(CREATOR_ROLE, msg.sender);
@@ -142,67 +144,6 @@ contract Collectible is
     }
 
 
-    // @notice Allows creators to raffle token for their contributors
-    // @param tokenId
-    // @param expectedAmount
-    function createRaffle(uint256 tokenId, uint256 expectedAmount)
-    public 
-    override 
-    onlyTokenOwner(tokenId)
-    onlyRole(CREATOR_ROLE)
-    {
-        require(expectedAmount > 0, "Expected amount must be greater than zero");
-        require(raffles[tokenId].expectedAmount == 0, "Raffle already exists");
-
-        raffles[tokenId] = Raffle(expectedAmount, 0, new address[](0));
-        approve(address(this), tokenId);
-        emit RaffleUpdated(tokenId, "Raffle created!", expectedAmount, 0, 0);
-    }
-
-    // @notice Allows users to join token raffles for their contributors
-    // @param tokenId
-    function joinRaffle(uint256 tokenId)
-    public 
-    payable 
-    override 
-    {
-        address creator = ownerOf(tokenId);
-        require(raffles[tokenId].expectedAmount > 0, "No active raffle for this token");
-        require(msg.value > 0, "Must send ETH to join raffle");
-        require(creator != msg.sender, "You cannot join your own raffle");
-        for (uint256 i = 0; i < raffles[tokenId].participants.length; i++) {
-            require(raffles[tokenId].participants[i] != msg.sender, "Address already in raffle");
-        }
-
-        donate(creator);
-        raffles[tokenId].participants.push(msg.sender);
-        raffles[tokenId].raffleAmount += msg.value;
-
-        string memory status = 
-            (raffles[tokenId].raffleAmount >= raffles[tokenId].expectedAmount && 
-            raffles[tokenId].participants.length < 2) 
-            ? "Raffle on hold, waiting for more contributors to draw." 
-            : "Raffle updated!";
-
-        emit RaffleUpdated(tokenId, 
-            status,
-            raffles[tokenId].expectedAmount, 
-            raffles[tokenId].raffleAmount, 
-            raffles[tokenId].participants.length);
-
-        if (raffles[tokenId].raffleAmount >= raffles[tokenId].expectedAmount && raffles[tokenId].participants.length >= 2) {
-            address[] memory contributors = raffles[tokenId].participants;
-            
-            uint256 randomIndex = uint256(
-                keccak256(abi.encodePacked(block.timestamp, block.prevrandao, creator))
-            ) % contributors.length;
-            
-            this.safeTransferFrom(creator, contributors[randomIndex], tokenId);
-            delete raffles[tokenId];
-        }
-    }
-
-
     /// @notice Allows a user to acquire the creator signature by paying the creator fee.
     /// @dev The creator fee is set by the admin.
     function getCreatorSignature()
@@ -235,8 +176,9 @@ contract Collectible is
         override
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
+        require(_mintBaseFee > 0, "The base fee must be greater than zero.");
         mintBaseFee = _mintBaseFee;
-        emit MintTaxesUpdated(_mintBaseFee, mintRateIncrementPercentage);
+        emit CreatorTermsUpdated(_mintBaseFee, mintRateIncrementPercentage, creatorSignatureFee);
     }
 
     /// @notice Updates the percentage rate for minting fee increments.
@@ -248,7 +190,7 @@ contract Collectible is
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         mintRateIncrementPercentage = _mintRateIncrementPercentage;
-        emit MintTaxesUpdated(mintBaseFee, _mintRateIncrementPercentage);
+        emit CreatorTermsUpdated(mintBaseFee, _mintRateIncrementPercentage, creatorSignatureFee);
     }
 
     /// @notice Updates the creator signature fee.
@@ -260,7 +202,7 @@ contract Collectible is
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         creatorSignatureFee = _creatorSignatureFee;
-        emit CreatorTermsUpdated(_creatorSignatureFee);
+        emit CreatorTermsUpdated(mintBaseFee, mintRateIncrementPercentage, _creatorSignatureFee);
     }
 
     /// @notice Allows the admin to withdraw ETH from the contract.

@@ -26,27 +26,13 @@ pragma solidity ^0.8.20;
 interface ICollectible {
     
     // Events
-    event MintTaxesUpdated(uint256 mintBaseFee, uint256 mintRateIncrementPercentage);
-    event CreatorTermsUpdated(uint256 creatorSignatureFee);
-    event RaffleUpdated(
-        uint256 indexed tokenId, 
-        string status,
-        uint256 expectedAmount, 
-        uint256 raffleAmount,
-        uint256 numParticipants);
-
+    event CreatorTermsUpdated(uint256 mintBaseFee, uint256 mintRateIncrementPercentage, uint256 creatorSignatureFee);
 
     // Function to get minter creator signature
     function getCreatorSignature() external payable;
 
     // Allow users to donate ETH to a specific creator in the system.
     function donate(address creator) external payable;
-
-    // Allows creators to create token raffles for their contributors
-    function createRaffle(uint256 tokenId, uint256 expectedAmount) external;
-
-    // Allows users to join token raffles for their contributors
-    function joinRaffle(uint256 tokenId) external payable;
 
     // Function to update the base mint fee
     function updateMintBaseFee(uint256 _mintBaseFee) external;
