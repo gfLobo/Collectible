@@ -1,70 +1,70 @@
-# Collectible - CERC721
+# Collectible
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](/LICENSE)
 
-## Simple Summary
+### Simple Summary  
 
-The **Collectible** is an implementation of a collectible system based on the ERC721 standard for non-fungible tokens (NFTs). It provides features such as token creation, donations to creators, raffles, and dynamic minting fees, all managed by roles like "Creator" and "Contributor."
+**Collectible** is an ERC721-based extension that enhances the NFT ecosystem by introducing features such as dynamic minting fees, creator donations, and transparent raffles. These improvements foster engagement between creators and contributors, ensuring a fair and sustainable system.
 
-## Abstract
+### Abstract  
 
-This contract allows creators to mint ERC721 tokens with associated URIs, and establishes a donation and raffle system to engage the community. Creators can host raffles where contributors can participate, with the contract ensuring transparent and random token distribution. Additionally, it includes the ability to pause the contract and dynamic minting fees based on the number of tokens a user owns.
+This EIP presents a contract that expands ERC721 with additional functionalities:  
+1. **Dynamic Minting Fees**: Fees calculated based on token ownership to discourage hoarding.  
+2. **Donation System**: Enables direct support for creators and community engagement.  
+3. **On-Chain Raffles**: Offers a transparent reward system using randomness.  
+4. **Role-Based Access Control**: Ensures security and decentralization with distinct roles for creators and contributors.
 
-## Motivation
+### Motivation  
 
-The motivation behind this contract is to provide a flexible and secure platform for creating and managing non-fungible tokens (NFTs) beyond simple collections. The donation and raffle features are designed to foster interaction between creators and contributors, offering incentives to engage with the ecosystem. Dynamic minting fees make the system fair by considering users’ contributions and participation.
+The aim is to overcome limitations in traditional NFT systems, such as fixed fees, lack of governance mechanisms, and exclusion of smaller participants in giveaways. The proposal promotes inclusion, engagement, and equitable distribution of digital assets.
 
-## Specification
+### Specification  
 
-This contract implements the **ERC721** standard with the following extensions:
-
-- **ERC721URIStorage**: Allows associating URIs with tokens.
-- **ERC721Pausable**: Enables pausing of the contract in emergencies.
-- **AccessControl**: Defines roles for "Creator" and "Contributor."
-- **ERC721Burnable**: Allows burning (destroying) tokens.
+The contract extends the ERC721 standard by incorporating the following modules:  
+- **ERC721URIStorage**: Enables token-URI association.  
+- **ERC721Pausable**: Allows pausing the contract during emergencies.  
+- **AccessControl**: Defines roles like "Creator" and "Contributor."  
+- **ERC721Burnable**: Allows token destruction.  
 - **ReentrancyGuard**: Protects against reentrancy attacks.
 
-### Main Functions:
+**Main Functions**:  
+1. `safeMint`: Allows creators to mint NFTs with unique URIs, paying dynamic fees.  
+2. `donate`: Users can donate ETH to creators, obtaining contributor status.  
+3. `createRaffle`: Enables creators to organize raffles for their tokens.  
+4. `joinRaffle`: Allows contributors to join raffles with on-chain randomness.  
+5. `getCreatorSignature`: Users can pay to become creators and mint tokens.  
+6. `withdraw`: Admins can withdraw accumulated ETH from the contract.  
 
-1. **safeMint**: Allows creators to mint tokens, requiring a minting fee.
-2. **donate**: Users can donate ETH to creators, becoming contributors.
-3. **createRaffle**: Creators can set up raffles for their tokens.
-4. **joinRaffle**: Contributors can join token raffles.
-5. **getCreatorSignature**: Users can pay to become a creator and mint tokens.
-6. **withdraw**: Allows the admin to withdraw ETH accumulated in the contract.
+### Rationale  
 
-## Caveats
+The design decisions were guided by:  
+1. **Dynamic Fees**: Prevent excessive accumulation, promoting scarcity and fairness.  
+2. **Donations**: Inspired by crowdfunding models to sustain creator support.  
+3. **Raffles**: Encourage engagement from smaller contributors through on-chain transparency.  
+4. **Role-Based Access Control**: Leverages `AccessControl` for decentralization and trust.  
+5. **Modular Compatibility**: Features can be adopted individually without breaking ERC721 interoperability.
 
-- The contract requires that the creator role be acquired via the `getCreatorSignature` function, and the token owner must be the creator of the raffle to manage participants.
-- The raffle function (`joinRaffle`) ensures that raffles only occur when the expected amount is met and when enough contributors are present.
+### Backward Compatibility  
 
-## Rationale
+The contract is fully compatible with ERC721, ensuring seamless interoperability with marketplaces, wallets, and other systems that support the standard.
 
-The choice to integrate **ERC721**, **ERC721URIStorage**, **ERC721Pausable**, **AccessControl**, and **ReentrancyGuard** was driven by the need for a robust and flexible system to support collectible creation with participation roles and access control. The donation and raffle system was inspired by crowdfunding models to increase community involvement.
+### Test Cases  
 
-## Backwards Compatibility
+The tests verify the following functionalities:  
+1. Token creation and destruction with associated URIs.  
+2. Role management for creators and contributors.  
+3. Donation and raffle operations.  
+4. Contract pause and resume.  
+5. Security against reentrancy attacks.  
 
-This contract is fully compatible with ERC721 contracts and adheres to the standard, ensuring interoperability with other non-fungible token solutions and marketplaces.
+### Reference Implementation  
 
-## Test Cases
+A functional implementation has been developed using **Solidity ^0.8.20** and **OpenZeppelin Contracts ^5.0.0**.  
 
-Functionality tests have been conducted to verify the following features:
+**References**:  
+- [ERC721 - Non-Fungible Token Standard](https://eips.ethereum.org/EIPS/eip-721)  
+- [OpenZeppelin Contracts](https://github.com/OpenZeppelin/openzeppelin-contracts)  
 
-- Token creation and URI association.
-- Donations and assignment of creator and contributor roles.
-- Raffle operations with dynamic amounts and participants.
-- Pausing and unpausing of the contract.
-- Collection administrator functions such as updating fees and redeeming money.
-
-
-## Implementations
-
-The contract was developed and tested in environments compatible with **Solidity ^0.8.20** and utilizing **OpenZeppelin Contracts ^5.0.0**.
-
-## References
-
-- [ERC721 - Non-Fungible Token Standard](https://eips.ethereum.org/EIPS/eip-721)
-- [OpenZeppelin Contracts](https://github.com/OpenZeppelin/openzeppelin-contracts)
 
 ## Copyright
 
