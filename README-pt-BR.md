@@ -1,82 +1,82 @@
-# Collectible - CERC721
+# Collectible
 
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](/LICENSE)
+[![Licença: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](/LICENSE)
 
-## Sumário
+### Resumo Simples  
 
-O **Collectible** é uma implementação de um sistema de colecionáveis baseado no padrão ERC721 para tokens não fungíveis (NFTs). Ele oferece funcionalidades como a criação de tokens, doações para criadores, sorteios (raffles), e controle dinâmico de taxas de minting, tudo gerido por papéis de acesso como "Criador" e "Contribuidor".
+**Collectible** é uma extensão baseada no padrão ERC721 que aprimora o ecossistema de NFTs ao introduzir recursos como taxas de minting dinâmicas, doações para criadores e sorteios transparentes. Essas melhorias incentivam o engajamento entre criadores e contribuidores, promovendo um sistema justo e sustentável.
 
-## Resumo
+### Resumo  
 
-Este contrato permite que criadores mintem tokens ERC721 com URIs associadas, e estabelece um sistema de doações e sorteios (raffles) para engajar a comunidade. Criadores podem organizar sorteios onde contribuintes podem participar, e o contrato garante que os tokens sejam distribuídos de forma transparente e aleatória. Além disso, a implementação inclui a habilidade de pausar o contrato e taxas de minting que aumentam conforme o número de tokens de um usuário.
+Este EIP apresenta um contrato que expande o padrão ERC721 com funcionalidades adicionais:  
+1. **Taxas de Minting Dinâmicas**: Taxas calculadas com base na posse de tokens, desincentivando o acúmulo excessivo.  
+2. **Sistema de Doações**: Permite apoio direto aos criadores e engajamento da comunidade.  
+3. **Sorteios On-Chain**: Oferece um sistema de recompensas transparente utilizando aleatoriedade.  
+4. **Controle de Acesso Baseado em Funções**: Garante segurança e descentralização com papéis distintos para criadores e contribuidores.
 
-## Motivação
+### Motivação  
 
-A motivação por trás deste contrato é fornecer uma plataforma flexível e segura para a criação e gestão de tokens não fungíveis (NFTs) que vão além de simples coleções. O uso de doações e sorteios é projetado para fomentar a interação entre criadores e contribuintes, oferecendo incentivos para participar do ecossistema. As taxas dinâmicas de minting tornam o sistema justo, considerando a contribuição e a participação dos usuários.
+O objetivo é superar as limitações dos sistemas NFT tradicionais, como taxas fixas, falta de mecanismos de governança e exclusão de pequenos participantes em sorteios. A proposta promove inclusão, engajamento e distribuição equitativa de ativos digitais.
 
-## Especificação
+### Especificação  
 
-Este contrato implementa o padrão **ERC721** com algumas extensões:
+O contrato estende o padrão ERC721, incorporando os seguintes módulos:  
+- **ERC721URIStorage**: Habilita a associação de URIs aos tokens.  
+- **ERC721Pausable**: Permite pausar o contrato em situações de emergência.  
+- **AccessControl**: Define papéis como "Criador" e "Contribuidor".  
+- **ERC721Burnable**: Permite a destruição de tokens.  
+- **ReentrancyGuard**: Protege contra ataques de reentrância.
 
-- **ERC721URIStorage**: Permite associar URIs aos tokens.
-- **ERC721Pausable**: Possibilita pausar o contrato para emergências.
-- **AccessControl**: Define papéis para "Criador" e "Contribuidor".
-- **ERC721Burnable**: Permite a queima (destruição) de tokens.
-- **ReentrancyGuard**: Previne ataques de reentrância.
+**Funções Principais**:  
+1. `safeMint`: Permite que criadores mintem NFTs com URIs únicos, pagando taxas dinâmicas.  
+2. `donate`: Usuários podem doar ETH para criadores, obtendo o status de contribuidores.  
+3. `createRaffle`: Permite que criadores organizem sorteios para seus tokens.  
+4. `joinRaffle`: Permite que contribuidores participem de sorteios com aleatoriedade on-chain.  
+5. `getCreatorSignature`: Usuários podem pagar para se tornarem criadores e mintar tokens.  
+6. `withdraw`: Administradores podem retirar ETH acumulado do contrato.  
 
-### Funções Principais:
+### Justificativa  
 
-1. **safeMint**: Permite a criação de tokens por criadores. Requer uma taxa de minting.
-2. **donate**: Usuários podem doar ETH para criadores, tornando-se contribuintes.
-3. **createRaffle**: Criadores podem criar sorteios para seus tokens.
-4. **joinRaffle**: Contribuintes podem participar de sorteios dos tokens.
-5. **getCreatorSignature**: Usuários podem pagar para obter o status de criador e mintar tokens.
-6. **withdraw**: Permite ao administrador retirar ETH acumulado no contrato.
+As decisões de design foram guiadas por:  
+1. **Taxas Dinâmicas**: Previnem o acúmulo excessivo, promovendo escassez e equidade.  
+2. **Doações**: Inspiradas em modelos de financiamento coletivo para sustentar os criadores.  
+3. **Sorteios**: Incentivam o engajamento de pequenos contribuidores por meio de transparência on-chain.  
+4. **Controle de Acesso Baseado em Funções**: Utiliza `AccessControl` para descentralização e confiança.  
+5. **Compatibilidade Modular**: Recursos podem ser adotados individualmente sem comprometer a interoperabilidade com ERC721.
 
-## Advertências
+### Compatibilidade Retroativa  
 
-- O contrato exige que o criador seja definido com a função `getCreatorSignature`, e o dono do token deve ser o criador do sorteio para poder gerenciar os participantes.
-- A função de sorteio (`joinRaffle`) é projetada para garantir que os sorteios ocorram somente quando o valor esperado for atingido e quando houver contribuintes suficientes.
+O contrato é totalmente compatível com o padrão ERC721, garantindo interoperabilidade com marketplaces, carteiras e outros sistemas que suportam o padrão.
 
-## Lógica
+### Casos de Teste  
 
-A escolha de integrar **ERC721**, **ERC721URIStorage**, **ERC721Pausable**, **AccessControl** e **ReentrancyGuard** foi motivada pela necessidade de um sistema robusto e flexível para suportar a criação de colecionáveis com papéis de participação e controle de acesso. A implementação de sorteios e doações também é inspirada em modelos de financiamento coletivo.
+Os testes verificam as seguintes funcionalidades:  
+1. Criação e destruição de tokens com URIs associados.  
+2. Gerenciamento de papéis para criadores e contribuidores.  
+3. Operações de doação e sorteios.  
+4. Pausar e retomar o contrato.  
+5. Segurança contra ataques de reentrância.  
 
-## Compatibilidade
+### Implementação de Referência  
 
-Este contrato é compatível com contratos ERC721 e segue o padrão, garantindo que a implementação seja interoperável com outras soluções de tokens não fungíveis e marketplaces.
+Uma implementação funcional foi desenvolvida utilizando **Solidity ^0.8.20** e **OpenZeppelin Contracts ^5.0.0**.  
 
-## Casos de teste
+**Referências**:  
+- [ERC721 - Padrão de Token Não Fungível](https://eips.ethereum.org/EIPS/eip-721)  
+- [OpenZeppelin Contracts](https://github.com/OpenZeppelin/openzeppelin-contracts)  
 
-Testes de funcionalidade foram realizados para verificar as seguintes características:
+## Direitos Autorais  
 
-- Criação de tokens e associação de URIs.
-- Doações e atribuição de papéis de criador e contribuidor.
-- Funcionamento dos sorteios com valores dinâmicos e participantes.
-- Pausa e retomada do contrato.
-- Funções do administrador da coleção como atualização de taxas e resgate do dinheiro.
+   Copyright [2024] [gfLobo]
 
-## Implementações
+   Licenciado sob a Apache License, Versão 2.0 (a "Licença");  
+   você não pode usar este arquivo exceto em conformidade com a Licença.  
+   Você pode obter uma cópia da Licença em  
 
-O contrato foi desenvolvido e testado em ambientes compatíveis com a versão **Solidity ^0.8.20** e utilizando a biblioteca **OpenZeppelin Contracts ^5.0.0**.
+       http://www.apache.org/licenses/LICENSE-2.0  
 
-## Referências
-
-- [ERC721 - Non-Fungible Token Standard](https://eips.ethereum.org/EIPS/eip-721)
-- [OpenZeppelin Contracts](https://github.com/OpenZeppelin/openzeppelin-contracts)
-
-## Direitos autorais
-
-    Direitos autorais [2024] [gfLobo]
-
-    Licenciado sob a Licença Apache, Versão 2.0 (a "Licença");
-    você não pode usar este arquivo, exceto em conformidade com a Licença.
-    Você pode obter uma cópia da Licença em
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-    A menos que exigido pela lei aplicável ou acordado por escrito, o software
-    distribuído sob a Licença é distribuído "NO ESTADO EM QUE SE ENCONTRA",
-    SEM GARANTIAS OU CONDIÇÕES DE QUALQUER TIPO, expressas ou implícitas.
-    Consulte a Licença para obter o idioma específico que rege as permissões e
-    limitações sob a Licença.
+   A menos que exigido pela legislação aplicável ou acordado por escrito, o software  
+   distribuído sob a Licença é distribuído "COMO ESTÁ",  
+   SEM GARANTIAS OU CONDIÇÕES DE QUALQUER TIPO, expressas ou implícitas.  
+   Veja a Licença para a linguagem específica que governa permissões e  
+   limitações sob a Licença.  
