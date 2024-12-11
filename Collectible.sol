@@ -91,7 +91,7 @@ contract Collectible is
     modifier updateCooldown() {
         require(
             block.timestamp >= lastUpdateTimestamp + UPDATE_INTERVAL, 
-            "Updates not available. Try it before your first mint of the next cycle."
+            "Updates not available until contract update interval is reached."
         );
         _;
     }
