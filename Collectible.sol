@@ -25,6 +25,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 import "ICollectible.sol";
 
 /// @title Collectible
@@ -55,8 +56,14 @@ contract Collectible is
     /// @notice Fee required for obtaining a creator signature, in ETH.
     uint256 public creatorSignatureFee;
     
-    /// @notice Incremental rate applied to minting fees based on how many tokens a user already owns.
-    uint256 public mintRateIncrementPercentage;
+    /// @notice Maximum of mints a user can perform
+    uint256 public maxMintsPerUserInCycle; 
+
+    /// @notice Last update timestamp
+    uint256 public lastUpdateTimestamp;
+
+    /// @notice Update Cycle
+    uint256 public constant UPDATE_INTERVAL = 30 days;
     
     /// @notice Role identifier for creator of the system.
     bytes32 public constant CREATOR_ROLE = keccak256("CREATOR_ROLE");
@@ -64,15 +71,8 @@ contract Collectible is
     /// @notice Role identifier for contributors (donors) in the system.
     bytes32 public constant CONTRIBUTOR_ROLE = keccak256("CONTRIBUTOR_ROLE");
     
-
-    struct Raffle {
-        uint256 expectedAmount;
-        uint256 raffleAmount;
-        address[] participants;
-    }
-
-    /// @notice Map raffles per tokenId
-    mapping(uint256 => Raffle) public raffles;
+    /// @notice Tracks the number of mints a user has performed in cycle
+    mapping(address => uint256) public mintsPerUserInCycle;
 
     /// @notice Ensures the contract is not paused when executing the function.
     modifier onlyIfNotPaused() {
@@ -80,53 +80,85 @@ contract Collectible is
         _;
     }
 
-    /// @notice Ensures the caller is the owner of the specified token.
+    /// @notice Ensures the caller is the owner of the specified token
     /// @param tokenId The ID of the token to check ownership.
     modifier onlyTokenOwner(uint256 tokenId) {
-        require(ownerOf(tokenId) == msg.sender, "Not the token owner!");
+        require(ownerOf(tokenId) == msg.sender, "Not the token owner.");
         _;
     }
 
+   /// @notice Ensures updates last the same time as cycles
+    modifier updateCooldown() {
+        require(
+            block.timestamp >= lastUpdateTimestamp + UPDATE_INTERVAL, 
+            "Updates not available. Try it before your first mint of the next cycle."
+        );
+        _;
+    }
 
-    /// @notice Contract constructor. Initializes the contract with the specified configuration parameters.
+   
+    /// @notice Contract constructor
     /// @param _tokenName The name of the token.
     /// @param _tokenSymbol The symbol of the token.
     /// @param _mintBaseFee The initial base fee for minting tokens.
-    /// @param _mintRateIncrementPercentage The rate at which minting fees increase.
     /// @param _creatorSignatureFee The fee required to become a member.
+    /// @param _maxMintsPerUserInCycle Maximum of mints per user in cycle
     constructor(
         string memory _tokenName,
         string memory _tokenSymbol,
         uint256 _mintBaseFee,
-        uint256 _mintRateIncrementPercentage,
-        uint256 _creatorSignatureFee
+        uint256 _creatorSignatureFee,
+        uint256 _maxMintsPerUserInCycle
     )
         ERC721(_tokenName, _tokenSymbol)
     {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(CREATOR_ROLE, msg.sender);
+        _grantRole(CONTRIBUTOR_ROLE, msg.sender);
 
-        updateMintBaseFee(_mintBaseFee);
-        updateMintRateIncrementPercentage(_mintRateIncrementPercentage);
-        updateCreatorSignaturePrice(_creatorSignatureFee);
+        updateTerms(
+            _mintBaseFee,
+            _creatorSignatureFee,
+            _maxMintsPerUserInCycle
+        );
     }
 
     /// @notice Safely mints a new ERC721 token and associates it with a URI.
-    /// @param to The address of the token recipient.
     /// @param uri The metadata URI associated with the token.
     /// @dev Only members can mint tokens and must pay the applicable minting fee.
-    function safeMint(address to, string memory uri)
+    function safeMint(string memory uri)
         public
         payable
+        override 
         onlyIfNotPaused
         nonReentrant
         onlyRole(CREATOR_ROLE)
     {
+        bool userMintsExceeded = mintsPerUserInCycle[msg.sender] + 1 > maxMintsPerUserInCycle;
+
         require(msg.value >= mintFee(), "Not enough ETH!");
+
         uint256 tokenId = currentTokenId++;
-        _safeMint(to, tokenId);
+        _safeMint(msg.sender, tokenId);
         _setTokenURI(tokenId, uri);
+
+        if(userMintsExceeded){
+            mintsPerUserInCycle[msg.sender] = 0;
+        }
+        mintsPerUserInCycle[msg.sender]++;
     }
+
+    /// @notice Calculates and returns the current minting fee for a user 
+    /// @dev Uses a logarithmic function to smooth the reduction in fees as the number of mints increases.
+    /// @return The minting fee in ETH.
+    function mintFee() public view returns (uint256) {
+        if (hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) return 0;
+        uint256 userMints = mintsPerUserInCycle[msg.sender];
+        uint256 divisor = userMints == 0 ? 1 : Math.log2(userMints + 2);
+        return mintBaseFee / divisor;
+    }
+
+
 
     /// @notice Allow users to donate ETH to a specific creator in the system.
     /// @param creator The address of the creator receiving the donation.
@@ -141,6 +173,7 @@ contract Collectible is
 
         payable(creator).transfer(msg.value);
         _grantRole(CONTRIBUTOR_ROLE, msg.sender);
+        emit DonationReceived(msg.sender, creator, msg.value);
     }
 
 
@@ -157,53 +190,34 @@ contract Collectible is
         _grantRole(CREATOR_ROLE, msg.sender);
     }
 
-    /// @notice Returns the minting fee for a user, calculated based on how many tokens the user owns.
-    /// @return The minting fee in ETH.
-    function mintFee() public view returns (uint256) {
-        if (hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) return 0;
-        uint256 baseFee = mintBaseFee;
-        uint256 incrementPercentage = mintRateIncrementPercentage;
-        uint256 userTokenCount = balanceOf(msg.sender);
-        return baseFee * (1 + incrementPercentage / 100) ** userTokenCount;
-    }
-
-
-    /// @notice Updates the base minting fee.
-    /// @param _mintBaseFee The new base minting fee.
-    /// @dev Only the admin can call this function.
-    function updateMintBaseFee(uint256 _mintBaseFee)
-        public
-        override
+    /// @notice Allows the admin to update contract terms
+    /// @param _mintBaseFee The initial base fee for minting tokens.
+    /// @param _creatorSignatureFee The fee required to become a member.
+    /// @param _maxMintsPerUserInCycle Maximum of mints per user in cycle
+    function updateTerms(uint256 _mintBaseFee, uint256 _creatorSignatureFee, uint256 _maxMintsPerUserInCycle) 
+        public 
+        override 
         onlyRole(DEFAULT_ADMIN_ROLE)
+        updateCooldown
     {
         require(_mintBaseFee > 0, "The base fee must be greater than zero.");
         mintBaseFee = _mintBaseFee;
-        emit CreatorTermsUpdated(_mintBaseFee, mintRateIncrementPercentage, creatorSignatureFee);
-    }
 
-    /// @notice Updates the percentage rate for minting fee increments.
-    /// @param _mintRateIncrementPercentage The new increment percentage.
-    /// @dev Only the admin can call this function.
-    function updateMintRateIncrementPercentage(uint256 _mintRateIncrementPercentage)
-        public
-        override
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        mintRateIncrementPercentage = _mintRateIncrementPercentage;
-        emit CreatorTermsUpdated(mintBaseFee, _mintRateIncrementPercentage, creatorSignatureFee);
-    }
-
-    /// @notice Updates the creator signature fee.
-    /// @param _creatorSignatureFee The new fee for creator signatures.
-    /// @dev Only the admin can call this function.
-    function updateCreatorSignaturePrice(uint256 _creatorSignatureFee)
-        public
-        override
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+        require(_creatorSignatureFee > 0, "Creator signature fee must be greater than zero.");
         creatorSignatureFee = _creatorSignatureFee;
-        emit CreatorTermsUpdated(mintBaseFee, mintRateIncrementPercentage, _creatorSignatureFee);
+
+        require(_maxMintsPerUserInCycle > 0 && _maxMintsPerUserInCycle <= 30, "Maximum mints per user in cycle must be between 0 and 30.");
+        maxMintsPerUserInCycle = _maxMintsPerUserInCycle;
+
+        lastUpdateTimestamp = block.timestamp; 
+
+        emit CreatorTermsUpdated(
+             mintBaseFee,
+             creatorSignatureFee,
+             maxMintsPerUserInCycle);
     }
+
+
 
     /// @notice Allows the admin to withdraw ETH from the contract.
     /// @param _amount The amount of ETH to withdraw.

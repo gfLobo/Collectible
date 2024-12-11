@@ -26,7 +26,12 @@ pragma solidity ^0.8.20;
 interface ICollectible {
     
     // Events
-    event CreatorTermsUpdated(uint256 mintBaseFee, uint256 mintRateIncrementPercentage, uint256 creatorSignatureFee);
+    event CreatorTermsUpdated(
+        uint256 mintBaseFee,
+        uint256 creatorSignatureFee,
+        uint256 maxMintsPerUser);
+
+    event DonationReceived(address from, address to, uint256 amount);
 
     // Function to get minter creator signature
     function getCreatorSignature() external payable;
@@ -34,14 +39,15 @@ interface ICollectible {
     // Allow users to donate ETH to a specific creator in the system.
     function donate(address creator) external payable;
 
-    // Function to update the base mint fee
-    function updateMintBaseFee(uint256 _mintBaseFee) external;
+    // Allow users to mint
+    function safeMint(string memory uri) external payable;
 
-    // Function to update the mint rate increment percentage
-    function updateMintRateIncrementPercentage(uint256 _mintRateIncrementPercentage) external;
-
-    // Function to update the minter Creator signature fee
-    function updateCreatorSignaturePrice(uint256 _creatorSignatureFee) external;
+    // Function to update contract terms
+    function updateTerms(
+        uint256 mintBaseFee,
+        uint256 creatorSignatureFee,
+        uint256 maxMintsPerUserInCycle
+    ) external;
 
     // Function to withdraw funds from the contract
     function withdraw(uint256 amount) external;
