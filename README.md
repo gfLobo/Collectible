@@ -48,7 +48,7 @@ The contract employs an inverse usage formula for minting fees:
 
 ```solidity
 if (hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) return 0;
-uint256 userMints = mintsPerUser[msg.sender];
+uint256 userMints = mintsPerUserInCycle[msg.sender];
 uint256 divisor = userMints == 0 ? 1 : Math.log2(userMints + 2);
 return mintBaseFee / divisor;
 ```
