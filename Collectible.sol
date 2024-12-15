@@ -151,7 +151,7 @@ contract Collectible is
     /// @notice Calculates and returns the current minting fee for a user 
     /// @dev Uses a logarithmic function to smooth the reduction in fees as the number of mints increases.
     /// @return The minting fee in ETH.
-    function mintFee() public view returns (uint256) {
+    function mintFee() public override view returns (uint256) {
         if (hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) return 0;
         uint256 userMints = mintsPerUserInCycle[msg.sender];
         uint256 divisor = userMints == 0 ? 1 : Math.log2(userMints + 2);
@@ -224,6 +224,7 @@ contract Collectible is
     /// @dev This function is protected by `nonReentrant` to prevent reentrancy attacks.
     function withdraw(uint256 _amount)
         public
+        override 
         onlyRole(DEFAULT_ADMIN_ROLE)
         nonReentrant
     {
@@ -244,13 +245,13 @@ contract Collectible is
 
     /// @notice Pauses all contract functions.
     /// @dev Only the admin can pause the contract.
-    function pause() public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function pause() public override onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
     }
 
     /// @notice Unpauses the contract and resumes functionality.
     /// @dev Only the admin can unpause the contract.
-    function unpause() public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function unpause() public override onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 

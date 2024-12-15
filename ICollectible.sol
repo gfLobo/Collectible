@@ -33,23 +33,32 @@ interface ICollectible {
 
     event DonationReceived(address from, address to, uint256 amount);
 
-    // Function to get minter creator signature
+    // Function to get CREATOR_ROLE
     function getCreatorSignature() external payable;
 
     // Allow users to donate ETH to a specific creator in the system.
     function donate(address creator) external payable;
 
-    // Allow users to mint
+    // Allow users to check their mint fee
+    function mintFee() external view returns (uint256);
+
+    // Allow DEFAULT_ADMIN_ROLE pause the contract
+    function pause() external;
+
+    // Allow DEFAULT_ADMIN_ROLE unpause the contract
+    function unpause() external;
+
+    // Allow CREATOR_ROLE to mint
     function safeMint(string memory uri) external payable;
 
-    // Function to update contract terms
+    // Allow DEFAULT_ADMIN_ROLE to update contract terms
     function updateTerms(
         uint256 mintBaseFee,
         uint256 creatorSignatureFee,
         uint256 maxMintsPerUserInCycle
     ) external;
 
-    // Function to withdraw funds from the contract
+    // Allow DEFAULT_ADMIN_ROLE to withdraw funds from the contract
     function withdraw(uint256 amount) external;
 
 }
