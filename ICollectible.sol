@@ -29,7 +29,7 @@ interface ICollectible {
     event CreatorTermsUpdated(
         uint256 mintBaseFee,
         uint256 creatorSignatureFee,
-        uint256 maxMintsPerUser);
+        uint256 maxMintsPerUserInCycle);
 
     event DonationReceived(address from, address to, uint256 amount);
 
