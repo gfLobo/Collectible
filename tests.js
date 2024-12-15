@@ -60,7 +60,7 @@ describe("Collectible Contract", function () {
             value: mintBaseFee,
         });
 
-        const userMints = await collectible.mintsPerUser(creator.address);
+        const userMints = await collectible.mintsPerUserInCycle(creator.address);
         expect(userMints).to.equal(1);
     });
 
