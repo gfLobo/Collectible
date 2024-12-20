@@ -206,7 +206,7 @@ contract Collectible is
         require(_creatorSignatureFee > 0, "Creator signature fee must be greater than zero.");
         creatorSignatureFee = _creatorSignatureFee;
 
-        require(_maxMintsPerUserInCycle > 0 && _maxMintsPerUserInCycle <= 30, "Maximum mints per user in cycle must be between 0 and 30.");
+        require(_maxMintsPerUserInCycle > 0 && _maxMintsPerUserInCycle <= 30, "Maximum mints per user in cycle must be between 1 and 30.");
         maxMintsPerUserInCycle = _maxMintsPerUserInCycle;
 
         lastUpdateTimestamp = block.timestamp; 
