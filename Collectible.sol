@@ -80,22 +80,6 @@ contract Collectible is
         _;
     }
 
-    /// @notice Ensures the caller is the owner of the specified token
-    /// @param tokenId The ID of the token to check ownership.
-    modifier onlyTokenOwner(uint256 tokenId) {
-        require(ownerOf(tokenId) == msg.sender, "Not the token owner.");
-        _;
-    }
-
-   /// @notice Ensures updates last the same time as cycles
-    modifier updateCooldown() {
-        require(
-            block.timestamp >= lastUpdateTimestamp + UPDATE_INTERVAL, 
-            "Updates not available until contract update interval is reached."
-        );
-        _;
-    }
-
    
     /// @notice Contract constructor
     /// @param _tokenName The name of the token.
@@ -113,7 +97,6 @@ contract Collectible is
         ERC721(_tokenName, _tokenSymbol)
     {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(CREATOR_ROLE, msg.sender);
         _grantRole(CONTRIBUTOR_ROLE, msg.sender);
 
         updateTerms(
@@ -198,8 +181,11 @@ contract Collectible is
         public 
         override 
         onlyRole(DEFAULT_ADMIN_ROLE)
-        updateCooldown
     {
+        require(
+            block.timestamp >= lastUpdateTimestamp + UPDATE_INTERVAL, 
+            "Updates not available until contract update interval is reached."
+        );
         require(_mintBaseFee > 0, "The base fee must be greater than zero.");
         mintBaseFee = _mintBaseFee;
 
@@ -238,8 +224,8 @@ contract Collectible is
         public
         virtual
         override
-        onlyTokenOwner(tokenId)
     {
+        require(ownerOf(tokenId) == msg.sender, "Not the token owner.");
         super._burn(tokenId);
     }
 
